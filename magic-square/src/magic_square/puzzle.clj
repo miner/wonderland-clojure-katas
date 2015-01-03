@@ -50,6 +50,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; brute force, exhaustive search, slow way
+;; my first solution
 
 (defn magic-values? [values]
   (let [rank (square-dimension values)]
@@ -107,8 +108,43 @@
 (defn faster-magic-square [values]
   (first (faster-all-magic-squares values)))
 
+
+;;;;;;;;;;;;;;;;;;;
+
+;; Siamese method, very fast for odd sized squares
+;; http://en.wikipedia.org/wiki/Siamese_method
+
+(defn wrap+ [max n]
+  (if (= max n) 0 (inc n)))
+
+(defn wrap- [max n]
+  (if (zero? n) max (dec n)))
+
+(defn siamese-square [values]
+  (let [rank (square-dimension values)]
+    (assert (and rank (odd? rank)) "Siamese method only works with odd rank squares")
+    (let [sorted-values (sort values)
+          square (vec (repeat rank (vec (repeat rank nil))))
+          up (fn [n] (wrap- (dec rank) n))
+          down (fn [n] (wrap+ (dec rank) n))
+          right (fn [n] (wrap+ (dec rank) n))
+          mid (/ (dec rank) 2)]
+      (loop [row 0 col mid vs (rest sorted-values)
+             sq (assoc-in square [0 mid] (first sorted-values))]
+        (if (seq vs)
+          (let [u (up row)
+                r (right col)]
+            (if (get-in sq [u r])
+              (let [d (down row)]
+                (recur d col (rest vs) (assoc-in sq [d col] (first vs))))
+              (recur u r (rest vs) (assoc-in sq [u r] (first vs)))))
+          (when (magic-square? sq)
+            sq))))))
+
 (defn magic-square [values]
-  (faster-magic-square values))
+  (if (odd? (count values))
+    (siamese-square values)
+    (faster-magic-square values)))
   
 ;; good for testing
 (defn magic-nxn [n]
@@ -129,5 +165,13 @@
   (time (magic-nxn 4))
   ;; "Elapsed time: 21819.502502 msecs"
   ;; [[1 2 15 16] [13 14 3 4] [12 7 10 5] [8 11 6 9]]
+
+  (time (siamese-square (range 1 10)))
+  ;; "Elapsed time: 0.101004 msecs"
+  ;; [[8 1 6] [3 5 7] [4 9 2]]
+
+  (time (siamese-square (range 1 26)))
+  ;; "Elapsed time: 0.175593 msecs"
+  ;; [[17 24 1 8 15] [23 5 7 14 16] [4 6 13 20 22] [10 12 19 21 3] [11 18 25 2 9]]
 
 )
