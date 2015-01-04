@@ -85,7 +85,8 @@
 
 ;; NB -- assumes all items must be unique across all rows.
 (defn unique? [rows]
-  (apply distinct? (apply concat rows)))
+  (when-let [rows (seq rows)]
+    (apply distinct? (apply concat rows))))
 
 (defn possible-groups [rows]
   ;; find the groupings of magic rows that have no overlap
